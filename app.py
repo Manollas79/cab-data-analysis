@@ -15,6 +15,7 @@ from sklearn.metrics import mean_squared_error
 from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.tree import DecisionTreeRegressor   # <-- Added Decision Tree import
 from sklearn.cluster import KMeans
 
 # ------------------------------
@@ -166,7 +167,7 @@ def train_price_prediction_model_new(df):
 model_new, mse_new = train_price_prediction_model_new(df_price)
 
 # ------------------------------
-# Advanced Models for Price Analysis
+# Advanced Models for Price Analysis (with Decision Tree)
 # ------------------------------
 @st.cache_data(show_spinner=True)
 def train_advanced_models(df):
@@ -179,6 +180,10 @@ def train_advanced_models(df):
     lin_model.fit(X_train, y_train)
     lin_mse = mean_squared_error(y_test, lin_model.predict(X_test))
     
+    dt_model = DecisionTreeRegressor(random_state=42)  # <-- Decision Tree model added
+    dt_model.fit(X_train, y_train)
+    dt_mse = mean_squared_error(y_test, dt_model.predict(X_test))
+    
     rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
     rf_model.fit(X_train, y_train)
     rf_mse = mean_squared_error(y_test, rf_model.predict(X_test))
@@ -189,6 +194,7 @@ def train_advanced_models(df):
     
     models = {
         "Linear Regression": (lin_model, lin_mse),
+        "Decision Tree": (dt_model, dt_mse),
         "Random Forest": (rf_model, rf_mse),
         "Gradient Boosting": (gb_model, gb_mse)
     }
@@ -389,7 +395,19 @@ if page == "Price Analysis":
         "passenger_count": [pp_passenger],
         "trip_duration": [pp_duration]
     })
-    base_prediction = chosen_model.predict(new_input)[0]
+    
+    # If Decision Tree is selected, adjust prediction if needed
+    if model_choice == "Decision Tree":
+        dt_pred = chosen_model.predict(new_input)[0]
+        reg_pred = advanced_models["Linear Regression"][0].predict(new_input)[0]
+        rf_pred = advanced_models["Random Forest"][0].predict(new_input)[0]
+        avg_val = (reg_pred + rf_pred) / 2
+        if abs(dt_pred - avg_val) > 20:
+            base_prediction = avg_val
+        else:
+            base_prediction = dt_pred
+    else:
+        base_prediction = chosen_model.predict(new_input)[0]
     
     passenger_multiplier = 1.0 if pp_passenger <= 5 else 1.2
     extra_duration = max(pp_duration - 10, 0)
