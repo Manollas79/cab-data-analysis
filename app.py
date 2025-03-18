@@ -420,24 +420,38 @@ if page == "Price Analysis":
     st.success(f"Estimated Fare: ₹ {final_fare:.2f}")
     
     if "pp_predictions" not in st.session_state:
-        st.session_state.pp_predictions = pd.DataFrame(columns=["distance", "passenger_count", "trip_duration", "day_of_week", "hour", "am_pm", "predicted_fare"])
-    if st.button("Save Estimation", key="pp_save_prediction"):
-        new_row = {
-            "distance": pp_distance,
-            "passenger_count": pp_passenger,
-            "trip_duration": pp_duration,
-            "day_of_week": day_of_week,
-            "hour": converted_hour,
-            "am_pm": am_pm,
-            "predicted_fare": final_fare
-        }
-        st.session_state.pp_predictions = pd.concat([st.session_state.pp_predictions, pd.DataFrame([new_row])], ignore_index=True)
-        st.success("Estimation saved!")
-    if not st.session_state.pp_predictions.empty:
-        st.write("Saved Estimations:")
-        st.dataframe(st.session_state.pp_predictions)
-        csv_predictions = st.session_state.pp_predictions.to_csv(index=False).encode("utf-8")
-        st.download_button("Download Estimations CSV", data=csv_predictions, file_name="estimations.csv", mime="text/csv")
+        st.session_state.pp_predictions = pd.DataFrame(columns=[
+        "distance", "passenger_count", "trip_duration", "day_of_week",
+        "hour", "am_pm", "predicted_fare", "predicted_model"  # Ensure this column exists
+    ])
+
+if st.button("Save Estimation", key="pp_save_prediction"):
+    new_row = pd.DataFrame([{
+        "distance": pp_distance,
+        "passenger_count": pp_passenger,
+        "trip_duration": pp_duration,
+        "day_of_week": day_of_week,
+        "hour": converted_hour,
+        "am_pm": am_pm,
+        "predicted_fare": final_fare,
+        "predicted_model": model_choice  # Ensure this is added correctly
+    }])
+
+    # Update session state DataFrame
+    st.session_state.pp_predictions = pd.concat([st.session_state.pp_predictions, new_row], ignore_index=True)
+    
+    st.success("Estimation saved!")
+
+# Display the saved estimations
+if not st.session_state.pp_predictions.empty:
+    st.write("Saved Estimations:")
+    st.dataframe(st.session_state.pp_predictions)
+
+    # Convert to CSV
+    csv_predictions = st.session_state.pp_predictions.to_csv(index=False).encode("utf-8")
+
+    # Download button
+    st.download_button("Download Estimations CSV", data=csv_predictions, file_name="estimations.csv", mime="text/csv")
 
 # ------------------------------
 # Trips Analysis Page – Only Additional Visualizations (Using Old Dataset)
